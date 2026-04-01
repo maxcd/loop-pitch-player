@@ -58,7 +58,22 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Everything else (app shell): cache-first, network fallback
+  // index.html: network-first — always try to fetch fresh, fall back to cache offline
+  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          if (response.ok) {
+            caches.open(CACHE).then(cache => cache.put(e.request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Everything else (manifest, icons): cache-first, network fallback
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;

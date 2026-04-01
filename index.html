@@ -981,7 +981,16 @@ function setStatus(msg) { statusText.textContent = msg; }
 // ── PWA: Service Worker ────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // Capture whether a SW already controls this page before registering.
+    // true  → this is an update; false → first install (no reload needed).
+    const hadController = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+
+    // When a new SW activates and claims this tab, reload to serve fresh assets.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) window.location.reload();
+    });
   });
 }
 
