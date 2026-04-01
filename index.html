@@ -127,7 +127,7 @@
 
   .file-item {
     display:flex; align-items:center; gap:0.5rem;
-    padding:0.5rem 0.8rem; cursor:pointer; font-size:0.65rem; color:var(--text);
+    padding:0.5rem 0.8rem; cursor:pointer; font-size:0.85rem; color:var(--text);
     border-bottom:1px solid #1a1a1a; transition:background 0.1s;
     -webkit-tap-highlight-color:transparent;
   }
@@ -144,8 +144,8 @@
 
   /* BPM boxes */
   .bpm-row { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
-  .bpm-box { background:var(--surface2); border:1px solid #1e1e1e; border-radius:3px; padding:0.8rem; display:flex; flex-direction:column; align-items:center; gap:0.15rem; }
-  .bpm-value { font-family:'Bebas Neue',sans-serif; font-size:3rem; line-height:1; color:var(--accent); text-shadow:0 0 20px rgba(255,77,0,0.3); }
+  .bpm-box { background:var(--surface2); border:1px solid #1e1e1e; border-radius:3px; padding:0.5rem; display:flex; flex-direction:column; align-items:center; gap:0.1rem; }
+  .bpm-value { font-family:'Bebas Neue',sans-serif; font-size:2rem; line-height:1; color:var(--accent); text-shadow:0 0 20px rgba(255,77,0,0.3); }
   .bpm-value.ok { color:var(--accent2); text-shadow:0 0 20px rgba(255,170,0,0.3); }
   /* Original BPM box is tappable for re-analysis */
   #bpmOriginalBox { cursor:pointer; transition:background 0.15s; }
@@ -203,7 +203,7 @@
   .btn-bpm-plus { background:var(--accent); color:#000; box-shadow:inset 0 -2px 0 rgba(0,0,0,0.3); }
   .btn-bpm-plus:hover { background:#ff6020; }
   .btn-bpm:disabled { opacity:0.3; cursor:not-allowed; }
-  .btn-bpm-sub { font-family:'Space Mono',monospace; font-size:0.55rem; text-transform:uppercase; letter-spacing:0.08em; opacity:0.6; }
+  .btn-bpm-sub { font-family:'Space Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; opacity:0.6; }
 
   /* Reset BPM button (center) */
   .btn-bpm-reset {
@@ -219,7 +219,7 @@
   .btn-bpm-reset:disabled { opacity:0.3; cursor:not-allowed; }
 
   /* Badges */
-  .badges { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .badges { display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end; }
   .badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.58rem; text-transform:uppercase; letter-spacing:0.08em; padding:0.28rem 0.6rem; border-radius:2px; }
   .badge-green { color:var(--green); background:rgba(0,230,118,0.07); border:1px solid rgba(0,230,118,0.2); }
   .badge-orange { color:var(--accent2); background:rgba(255,170,0,0.07); border:1px solid rgba(255,170,0,0.2); }
@@ -228,12 +228,11 @@
   .play-row { display:flex; gap:0.6rem; }
   .btn { font-family:'Space Mono',monospace; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:0.9rem 1rem; border:none; border-radius:2px; cursor:pointer; transition:transform 0.1s,background 0.15s; flex:1; }
   .btn:active { transform:scale(0.96); }
-  .btn-play { background:var(--accent); color:#000; }
-  .btn-play:hover { background:#ff6020; }
-  .btn-play:disabled { background:#2a2a2a; color:var(--muted); cursor:not-allowed; }
-  .btn-stop { background:var(--surface2); color:var(--text); border:1px solid #2a2a2a; }
-  .btn-stop:hover { background:#252525; }
-  .btn-stop:disabled { opacity:0.35; cursor:not-allowed; }
+  .btn-toggle { background:var(--accent); color:#000; }
+  .btn-toggle:hover { background:#ff6020; }
+  .btn-toggle.playing { background:var(--surface2); color:var(--text); border:1px solid #2a2a2a; }
+  .btn-toggle.playing:hover { background:#252525; }
+  .btn-toggle:disabled { background:#2a2a2a; color:var(--muted); cursor:not-allowed; }
 
   /* Status */
   .status-bar { display:flex; align-items:center; gap:0.5rem; font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; padding-top:0.4rem; border-top:1px solid #1a1a1a; }
@@ -292,7 +291,6 @@
 
     <!-- Folder picker -->
     <div>
-      <div class="section-label">📁 Ordner mit Loops</div>
       <div class="folder-row">
         <button class="btn-folder" id="folderBtn">📂 Ordner wählen</button>
         <label  class="btn-folder" id="folderLabel" for="folderInput" style="display:none">📂 Loops wählen</label>
@@ -357,16 +355,9 @@
       <button class="btn-bpm btn-bpm-plus"  id="bpmPlus"  disabled>+<div class="btn-bpm-sub">1 BPM</div></button>
     </div>
 
-    <!-- Badges -->
-    <div class="badges">
-      <div class="badge badge-green">✓ Pitch-Lock</div>
-      <div class="badge badge-orange" id="rangeLabel">±0% · 1.00×</div>
-    </div>
-
     <!-- Play controls -->
     <div class="play-row">
-      <button class="btn btn-play" id="playBtn" disabled>▶ Play Loop</button>
-      <button class="btn btn-stop" id="stopBtn" disabled>■ Stop</button>
+      <button class="btn btn-toggle" id="toggleBtn" disabled>▶ Play</button>
     </div>
 
     <!-- Status -->
@@ -423,9 +414,9 @@ const $ = id => document.getElementById(id);
 const folderBtn=$('folderBtn'), folderInfo=$('folderInfo');
 const browser=$('browser'), bcSearch=$('bcSearch'), bcCrumbs=$('bcCrumbs');
 const subfolderRow=$('subfolderRow'), fileList=$('fileList'), fileEmpty=$('fileEmpty');
-const playBtn=$('playBtn'), stopBtn=$('stopBtn');
+const toggleBtn=$('toggleBtn');
 const bpmMinus=$('bpmMinus'), bpmPlus=$('bpmPlus'), bpmReset=$('bpmReset');
-const speedSlider=$('speedSlider'), speedLabel=$('speedLabel'), rangeLabel=$('rangeLabel');
+const speedSlider=$('speedSlider'), speedLabel=$('speedLabel');
 const bpmOriginal=$('bpmOriginal'), bpmCurrent=$('bpmCurrent');
 const bpmOriginalBox=$('bpmOriginalBox'), bpmHint=$('bpmHint'), detectingLabel=$('detectingLabel');
 const methodPopup=$('methodPopup');
@@ -661,7 +652,6 @@ async function loadFileHandle(handle, name) {
   speedSlider.value = 0;
   updateSliderFill();
   speedLabel.textContent = '+0%';
-  rangeLabel.textContent = '±0% · 1.000×';
 
   setStatus(`Lade „${name}"…`);
 
@@ -672,7 +662,9 @@ async function loadFileHandle(handle, name) {
     if (ac.state === 'suspended') await ac.resume();
     audioBuffer = await ac.decodeAudioData(ab);
     drawWaveform(audioBuffer);
-    playBtn.disabled = false;
+    toggleBtn.disabled = false;
+    toggleBtn.textContent = '▶ Play';
+    toggleBtn.classList.remove('playing');
     setStatus(`„${name.replace(/\.[^/.]+$/,'')}" · ${audioBuffer.duration.toFixed(2)}s`);
 
     // Resume playing if was already playing, otherwise stay stopped
@@ -881,7 +873,6 @@ function applySpeedPercent(p, immediate) {
   updateSliderFill();
   const sign = p>=0?'+':'';
   speedLabel.textContent = `${sign}${p}%`;
-  rangeLabel.textContent = `${sign}${p}% · ${(1+p/100).toFixed(3)}×`;
   updateDisplay();
   if (isPlaying) {
     if (immediate) { restartLoop(); }
@@ -933,8 +924,11 @@ function updateDisplay() {
 }
 
 // ── Playback ───────────────────────────────────────────────────
-playBtn.addEventListener('click', () => { if (!isPlaying && audioBuffer) startLoop(); });
-stopBtn.addEventListener('click', () => stopLoop(false));
+toggleBtn.addEventListener('click', () => {
+  if (!audioBuffer) return;
+  if (isPlaying) stopLoop(false);
+  else startLoop();
+});
 
 function startLoop() {
   const ac = getAC();
@@ -949,8 +943,9 @@ function startLoop() {
   sourceNode.start(0, loopOffset % audioBuffer.duration);
   loopStartTime = ac.currentTime;
   isPlaying = true;
-  playBtn.disabled = true;
-  stopBtn.disabled = false;
+  toggleBtn.textContent = '■ Stop';
+  toggleBtn.classList.add('playing');
+  toggleBtn.disabled = false;
   statusDot.classList.add('playing');
   const sign = speedPercent>=0?'+':'';
   setStatus(`Loop · ${sign}${speedPercent}% · Pitch-Lock`);
@@ -965,8 +960,8 @@ function stopLoop(silent) {
     sourceNode.disconnect(); sourceNode = null;
   }
   isPlaying = false;
-  playBtn.disabled = false;
-  stopBtn.disabled = true;
+  toggleBtn.textContent = '▶ Play';
+  toggleBtn.classList.remove('playing');
   statusDot.classList.remove('playing');
   if (!silent) setStatus('Gestoppt');
 }
