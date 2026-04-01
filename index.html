@@ -277,6 +277,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   .install-banner-dismiss:hover { color: var(--text); }
+
+  label.btn-folder { display: inline-flex; align-items: center; }
 </style>
 </head>
 <body>
@@ -293,6 +295,8 @@
       <div class="section-label">📁 Ordner mit Loops</div>
       <div class="folder-row">
         <button class="btn-folder" id="folderBtn">📂 Ordner wählen</button>
+        <label  class="btn-folder" id="folderLabel" for="folderInput" style="display:none">📂 Loops wählen</label>
+        <input  type="file" id="folderInput" multiple accept="audio/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
         <div class="folder-info" id="folderInfo">Kein Ordner geladen</div>
       </div>
     </div>
@@ -1021,6 +1025,73 @@ function dismissBanner(id) {
   $(id).style.display = 'none';
   localStorage.setItem(INSTALL_KEY, '1');
 }
+
+// ── iOS fallback: show correct picker ─────────────────────────
+if (typeof window.showDirectoryPicker !== 'function') {
+  $('folderBtn').style.display = 'none';
+  $('folderLabel').style.display = '';
+}
+
+function buildTreeFromFiles(fileArray) {
+  const root = { name: 'Loops', path: '', files: [], subdirs: [] };
+
+  for (const file of fileArray) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!AUDIO_EXTS.includes(ext)) continue;
+
+    // webkitRelativePath = "RootFolder/Sub/file.mp3" when available, else ""
+    const rel   = file.webkitRelativePath || file.name;
+    const parts = rel.split('/').filter(Boolean);
+
+    // Use the real root-folder name if webkitRelativePath provided it
+    if (parts.length > 1 && root.name === 'Loops') root.name = parts[0];
+
+    // Walk/create the path (skip parts[0] = root folder, skip last = filename)
+    let node = root;
+    for (let i = 1; i < parts.length - 1; i++) {
+      let sub = node.subdirs.find(d => d.name === parts[i]);
+      if (!sub) {
+        sub = { name: parts[i], path: parts.slice(0, i + 1).join('/'), files: [], subdirs: [] };
+        node.subdirs.push(sub);
+      }
+      node = sub;
+    }
+
+    const filename = parts[parts.length - 1];
+    node.files.push({ name: filename, handle: { getFile: () => Promise.resolve(file) } });
+  }
+
+  // Sort recursively (mirrors scanDir behaviour)
+  (function sort(n) {
+    n.files.sort((a, b) => a.name.localeCompare(b.name));
+    n.subdirs.sort((a, b) => a.name.localeCompare(b.name));
+    n.subdirs.forEach(sort);
+  })(root);
+
+  return root;
+}
+
+$('folderInput').addEventListener('change', function () {
+  const files = Array.from(this.files || []);
+  if (!files.length) return;
+
+  folderInfo.textContent = 'Lade Dateien…';
+  folderInfo.classList.remove('loaded');
+
+  rootTree = buildTreeFromFiles(files);
+  const total = countFiles(rootTree);
+
+  if (total === 0) { folderInfo.textContent = 'Keine Audio-Dateien gefunden'; return; }
+
+  folderInfo.textContent = `📁 ${rootTree.name}  ·  ${total} Loops`;
+  folderInfo.classList.add('loaded');
+  allSearchItems = [];
+  flattenFiles(rootTree, allSearchItems);
+  breadcrumbPath = [{ name: rootTree.name, node: rootTree }];
+  renderBrowser(rootTree);
+  browser.classList.add('visible');
+  setStatus(`${total} Loops bereit`);
+});
 </script>
 </body>
 </html>
