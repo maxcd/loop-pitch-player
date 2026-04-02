@@ -401,7 +401,8 @@
 const AUDIO_EXTS = ['mp3','wav','ogg','flac','aac','m4a','opus','webm'];
 
 // ── State ──────────────────────────────────────────────────────
-let audioCtx = null, audioBuffer = null, sourceNode = null;
+let audioCtx = null, audioBuffer = null;
+let stNode = null, stFilter = null, stSoundTouch = null, stCurrentFrame = 0, _STMod = null;
 let isPlaying = false, detectedBPM = null, speedPercent = 0;
 let loopStartTime = 0, loopOffset = 0;
 let sliderDebounceTimer = null;
@@ -451,6 +452,11 @@ function getAC() {
   document.addEventListener('touchstart', unlockAudio, { capture: true, once: true });
   document.addEventListener('click',      unlockAudio, { capture: true, once: true });
 })();
+
+// Load SoundTouch.js for pitch-preserving time-stretch
+import('https://cdn.jsdelivr.net/npm/soundtouchjs/dist/soundtouch.js')
+  .then(mod => { _STMod = mod; })
+  .catch(e => console.error('SoundTouch.js load error:', e));
 
 // ── Persist directory handle via IndexedDB ─────────────────────
 const IDB_NAME = 'LoopPitchPlayer', IDB_STORE = 'handles', IDB_KEY = 'lastDir';
@@ -966,33 +972,62 @@ toggleBtn.addEventListener('click', async () => {
 });
 
 function startLoop() {
+  if (!_STMod) { setStatus('Audio-Engine lädt…'); return; }
   const ac = getAC();
-  sourceNode = ac.createBufferSource();
-  sourceNode.buffer = audioBuffer;
-  sourceNode.loop = true;
-  sourceNode.playbackRate.value = 1+speedPercent/100;
-  if ('preservesPitch' in sourceNode) sourceNode.preservesPitch = true;
-  else if ('mozPreservesPitch' in sourceNode) sourceNode.mozPreservesPitch = true;
-  sourceNode.connect(ac.destination);
-  sourceNode.start(0, loopOffset % audioBuffer.duration);
+  const bufLen = audioBuffer.length;
+  const chanL = audioBuffer.getChannelData(0);
+  const chanR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : chanL;
+
+  stCurrentFrame = Math.round(loopOffset * audioBuffer.sampleRate) % bufLen;
+
+  // Custom looping source: wraps seamlessly at buffer end
+  const loopingSource = {
+    extract(target, numFrames) {
+      for (let i = 0; i < numFrames; i++) {
+        const p = (stCurrentFrame + i) % bufLen;
+        target[i * 2]     = chanL[p];
+        target[i * 2 + 1] = chanR[p];
+      }
+      stCurrentFrame = (stCurrentFrame + numFrames) % bufLen;
+      return numFrames;
+    }
+  };
+
+  stSoundTouch = new _STMod.SoundTouch();
+  stSoundTouch.tempo = 1 + speedPercent / 100;
+  stSoundTouch.pitch = 1.0;
+
+  stFilter = new _STMod.SimpleFilter(loopingSource, stSoundTouch);
+
+  const samples = new Float32Array(4096 * 2);
+  stNode = ac.createScriptProcessor(4096, 2, 2);
+  stNode.onaudioprocess = (e) => {
+    const outL = e.outputBuffer.getChannelData(0);
+    const outR = e.outputBuffer.getChannelData(1);
+    if (!stFilter) { outL.fill(0); outR.fill(0); return; }
+    stFilter.extract(samples, 4096);
+    for (let i = 0; i < 4096; i++) {
+      outL[i] = samples[i * 2];
+      outR[i] = samples[i * 2 + 1];
+    }
+  };
+  stNode.connect(ac.destination);
+
   loopStartTime = ac.currentTime;
   isPlaying = true;
   toggleBtn.textContent = '■ Stop';
   toggleBtn.classList.add('playing');
   toggleBtn.disabled = false;
   statusDot.classList.add('playing');
-  const sign = speedPercent>=0?'+':'';
+  const sign = speedPercent >= 0 ? '+' : '';
   setStatus(`Loop · ${sign}${speedPercent}% · Pitch-Lock`);
 }
 
 function stopLoop(silent) {
-  if (sourceNode) {
-    const ac = getAC();
-    const elapsed = (ac.currentTime-loopStartTime)*(1+speedPercent/100);
-    if (audioBuffer) loopOffset = (loopOffset+elapsed) % audioBuffer.duration;
-    try { sourceNode.stop(); } catch(e){}
-    sourceNode.disconnect(); sourceNode = null;
-  }
+  stFilter = null;
+  stSoundTouch = null;
+  if (stNode) { stNode.disconnect(); stNode = null; }
+  if (audioBuffer) loopOffset = stCurrentFrame / audioBuffer.sampleRate;
   isPlaying = false;
   toggleBtn.textContent = '▶ Play';
   toggleBtn.classList.remove('playing');
@@ -1002,10 +1037,10 @@ function stopLoop(silent) {
 
 function restartLoop() {
   if (!isPlaying) return;
-  const ac = getAC();
-  const elapsed = (ac.currentTime-loopStartTime)*(1+speedPercent/100);
-  if (audioBuffer) loopOffset = (loopOffset+elapsed) % audioBuffer.duration;
-  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode=null; }
+  stFilter = null;
+  stSoundTouch = null;
+  if (stNode) { stNode.disconnect(); stNode = null; }
+  if (audioBuffer) loopOffset = stCurrentFrame / audioBuffer.sampleRate;
   isPlaying = false;
   startLoop();
 }
