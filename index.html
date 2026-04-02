@@ -431,6 +431,27 @@ function getAC() {
   return audioCtx;
 }
 
+// iOS: unlock AudioContext on very first user interaction
+(function() {
+  let unlocked = false;
+  function unlockAudio() {
+    if (unlocked) return;
+    unlocked = true;
+    const ac = getAC();
+    // play a silent 0.001-second buffer to fully unlock on iOS
+    const buf = ac.createBuffer(1, 1, 22050);
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    src.connect(ac.destination);
+    src.start(0);
+    ac.resume();
+    document.removeEventListener('touchstart', unlockAudio, true);
+    document.removeEventListener('click',      unlockAudio, true);
+  }
+  document.addEventListener('touchstart', unlockAudio, { capture: true, once: true });
+  document.addEventListener('click',      unlockAudio, { capture: true, once: true });
+})();
+
 // ── Persist directory handle via IndexedDB ─────────────────────
 const IDB_NAME = 'LoopPitchPlayer', IDB_STORE = 'handles', IDB_KEY = 'lastDir';
 
@@ -672,7 +693,7 @@ async function loadFileHandle(handle, name) {
     const file = await handle.getFile();
     const ab = await file.arrayBuffer();
     const ac = getAC();
-    audioBuffer = await ac.decodeAudioData(ab);
+    audioBuffer = await ac.decodeAudioData(ab.slice(0));
     drawWaveform(audioBuffer);
     toggleBtn.disabled = false;
     toggleBtn.textContent = '▶ Play';
@@ -936,9 +957,9 @@ function updateDisplay() {
 }
 
 // ── Playback ───────────────────────────────────────────────────
-toggleBtn.addEventListener('click', () => {
+toggleBtn.addEventListener('click', async () => {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  audioCtx.resume();
+  await audioCtx.resume();
   if (!audioBuffer) return;
   if (isPlaying) stopLoop(false);
   else startLoop();
