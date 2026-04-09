@@ -6,7 +6,15 @@ A lightweight web app for looping drum loops and changing tempo without affectin
 
 ---
 
-## What it does
+## Sample Loops
+
+A small collection of example drum loops is included to get you started. These are free samples from **[SampleSwap.org](https://sampleswap.org)** — a free sample library. 
+
+> These samples are free for non-commercial use. For commercial projects, please check the terms at [sampleswap.org](https://sampleswap.org).
+
+---
+
+
 
 - Load a folder of audio files (MP3, WAV, OGG, FLAC, AAC, M4A)
 - Browse and select loops from your folder structure

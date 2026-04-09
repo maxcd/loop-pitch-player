@@ -746,6 +746,7 @@ function bpmFromFilename(name) {
   const patterns = [
     /(\d{2,3})\s*bpm/,
     /bpm\s*(\d{2,3})/,
+    /^(\d{2,3})[_\-\s]/,
     /_(\d{2,3})_/,
     /-(\d{2,3})-/,
     /@(\d{2,3})/,
