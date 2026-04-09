@@ -924,16 +924,9 @@ function startWaveformAnimation() {
   if (animFrame) cancelAnimationFrame(animFrame);
   function tick() {
     if (!isPlaying || !audioBuffer) { animFrame = null; return; }
-    let progress;
-    if (sourceNode) {
-      // Native engine (pitch lock OFF): use time-based position
-      const ac = getAC();
-      const elapsed = (ac.currentTime - loopStartTime) * (1 + speedPercent / 100);
-      progress = ((loopOffset + elapsed) % audioBuffer.duration) / audioBuffer.duration;
-    } else {
-      // SoundTouch engine (pitch lock ON): stCurrentFrame is live position
-      progress = stCurrentFrame / audioBuffer.length;
-    }
+    const ac = getAC();
+    const elapsed = (ac.currentTime - loopStartTime) * (1 + speedPercent / 100);
+    const progress = ((loopOffset + elapsed) % audioBuffer.duration) / audioBuffer.duration;
     renderWaveframe(progress);
     animFrame = requestAnimationFrame(tick);
   }
