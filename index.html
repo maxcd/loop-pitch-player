@@ -882,39 +882,46 @@ async function robustBPM(buffer) {
 }
 
 // ── Waveform ───────────────────────────────────────────────────
-let waveformPeaks = null;
+let offUnplayed = null; // offscreen canvas: full waveform in gray (#333)
+let offPlayed   = null; // offscreen canvas: full waveform in orange/amber
+
+function buildOffscreenCanvas(w, h, data, step, colorFn) {
+  const oc = new OffscreenCanvas(w, h);
+  const octx = oc.getContext('2d');
+  const bg = octx.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0,'#1a1a1a'); bg.addColorStop(1,'#111');
+  octx.fillStyle = bg; octx.fillRect(0,0,w,h);
+  octx.strokeStyle='#1e1e1e'; octx.lineWidth=1;
+  octx.beginPath(); octx.moveTo(0,h/2); octx.lineTo(w,h/2); octx.stroke();
+  for (let i=0;i<w;i++) {
+    let mn=1,mx=-1;
+    for (let j=0;j<step;j++){const d=data[i*step+j]||0;if(d<mn)mn=d;if(d>mx)mx=d;}
+    const yT = ((1-mx)/2)*h, barH = Math.max(1,((1-mn)/2)*h-yT);
+    octx.fillStyle = colorFn(i, w);
+    octx.fillRect(i, yT, 1, barH);
+  }
+  return oc;
+}
 
 function drawWaveform(buf) {
   const dpr = window.devicePixelRatio||1;
   canvas.width = canvas.offsetWidth*dpr; canvas.height = 54*dpr;
-  const w = canvas.width, data = buf.getChannelData(0);
+  const w = canvas.width, h = canvas.height, data = buf.getChannelData(0);
   const step = Math.ceil(data.length/w);
-  waveformPeaks = new Float32Array(w*2);
-  for (let i=0;i<w;i++) {
-    let mn=1,mx=-1;
-    for (let j=0;j<step;j++){const d=data[i*step+j]||0;if(d<mn)mn=d;if(d>mx)mx=d;}
-    waveformPeaks[i*2]   = mn;
-    waveformPeaks[i*2+1] = mx;
-  }
+  offUnplayed = buildOffscreenCanvas(w, h, data, step, () => '#333');
+  offPlayed   = buildOffscreenCanvas(w, h, data, step, (i, w) => i < w*0.5 ? '#ff4d00' : '#ffaa00');
   renderWaveframe(0);
 }
 
 function renderWaveframe(progress) {
-  if (!waveformPeaks) return;
+  if (!offUnplayed) return;
   const w = canvas.width, h = canvas.height;
-  const playedX = Math.floor(progress * w);
-  const bg = ctx2d.createLinearGradient(0,0,0,h);
-  bg.addColorStop(0,'#1a1a1a'); bg.addColorStop(1,'#111');
-  ctx2d.fillStyle=bg; ctx2d.fillRect(0,0,w,h);
-  ctx2d.strokeStyle='#1e1e1e'; ctx2d.lineWidth=1;
-  ctx2d.beginPath(); ctx2d.moveTo(0,h/2); ctx2d.lineTo(w,h/2); ctx2d.stroke();
-  for (let i=0;i<w;i++) {
-    const mn = waveformPeaks[i*2], mx = waveformPeaks[i*2+1];
-    const yT = ((1-mx)/2)*h, barH = Math.max(1,((1-mn)/2)*h-yT);
-    ctx2d.fillStyle = i < playedX
-      ? (i < playedX * 0.5 ? '#ff4d00' : '#ffaa00')
-      : '#333';
-    ctx2d.fillRect(i, yT, 1, barH);
+  const playedW = Math.floor(progress * w);
+  // Blit full unplayed canvas as base
+  ctx2d.drawImage(offUnplayed, 0, 0);
+  // Overlay played portion from the played offscreen canvas
+  if (playedW > 0) {
+    ctx2d.drawImage(offPlayed, 0, 0, playedW, h, 0, 0, playedW, h);
   }
 }
 
@@ -935,7 +942,7 @@ function startWaveformAnimation() {
 
 function stopWaveformAnimation() {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-  if (waveformPeaks) renderWaveframe(0);
+  if (offUnplayed) renderWaveframe(0);
 }
 
 // ── Slider ─────────────────────────────────────────────────────
