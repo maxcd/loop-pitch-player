@@ -298,22 +298,22 @@
     <!-- Folder picker -->
     <div>
       <div class="folder-row">
-        <button class="btn-folder" id="folderBtn">📂 Ordner wählen</button>
-        <label  class="btn-folder" id="folderLabel" for="folderInput" style="display:none">📂 Loops wählen</label>
+        <button class="btn-folder" id="folderBtn">📂 Choose Folder</button>
+        <label  class="btn-folder" id="folderLabel" for="folderInput" style="display:none">📂 Choose Loops</label>
         <input  type="file" id="folderInput" multiple accept=".mp3,.wav,.ogg,.flac,.aac,.m4a,.opus,.webm" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-        <div class="folder-info" id="folderInfo">Kein Ordner geladen</div>
+        <div class="folder-info" id="folderInfo">No folder loaded</div>
       </div>
     </div>
 
     <!-- Browser: breadcrumb + subfolders + file list -->
     <div class="browser" id="browser">
       <div class="breadcrumb">
-        <input type="text" class="bc-search" id="bcSearch" placeholder="🔍 Suchen…">
+        <input type="text" class="bc-search" id="bcSearch" placeholder="🔍 Search…">
         <div class="bc-crumbs" id="bcCrumbs"></div>
       </div>
       <div class="subfolder-row" id="subfolderRow"></div>
       <div class="file-list" id="fileList">
-        <div class="file-empty" id="fileEmpty">Keine Loops hier</div>
+        <div class="file-empty" id="fileEmpty">No loops here</div>
       </div>
     </div>
 
@@ -323,22 +323,22 @@
     <!-- BPM display -->
     <div class="bpm-row-wrap">
       <div class="bpm-row">
-        <div class="bpm-box" id="bpmOriginalBox" title="Tippen um Analyse zu wiederholen">
+        <div class="bpm-box" id="bpmOriginalBox" title="Tap to re-analyse">
           <div class="bpm-value" id="bpmOriginal">—</div>
           <div class="bpm-label">BPM Original</div>
-          <div class="bpm-hint" id="bpmHint">tippen = neu analysieren</div>
-          <div class="bpm-detecting" id="detectingLabel" style="display:none">analysiere…</div>
+          <div class="bpm-hint" id="bpmHint">tap = re-analyse</div>
+          <div class="bpm-detecting" id="detectingLabel" style="display:none">analysing…</div>
         </div>
         <div class="bpm-box">
           <div class="bpm-value" id="bpmCurrent">—</div>
-          <div class="bpm-label">BPM Aktuell</div>
+          <div class="bpm-label">BPM Current</div>
         </div>
       </div>
       <!-- Method picker popup (appears near bpmOriginalBox) -->
       <div class="method-popup" id="methodPopup">
-        <div class="method-option" data-method="onset">🥁 Onset-Erkennung (busy grooves)</div>
-        <div class="method-option" data-method="autocorr">〰 Autocorrelation (einfache loops)</div>
-        <div class="method-option" data-method="combined">⚡ Kombiniert (auto)</div>
+        <div class="method-option" data-method="onset">🥁 Onset Detection (busy grooves)</div>
+        <div class="method-option" data-method="autocorr">〰 Autocorrelation (simple loops)</div>
+        <div class="method-option" data-method="combined">⚡ Combined (auto)</div>
       </div>
     </div>
 
@@ -364,13 +364,13 @@
     <!-- Play controls -->
     <div class="play-row">
       <button class="btn btn-toggle" id="toggleBtn" disabled>▶ Play</button>
-      <button class="btn btn-pitch" id="pitchBtn" title="Pitch-Lock ein/aus">🎵 Pitch-Lock</button>
+      <button class="btn btn-pitch" id="pitchBtn" title="Pitch-Lock on/off">🎵 Pitch-Lock</button>
     </div>
 
     <!-- Status -->
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Ordner wählen um zu starten</span>
+      <span id="statusText">Choose a folder to start</span>
     </div>
 
   </div>
@@ -383,10 +383,10 @@
   </div>
   <div class="install-banner-text">
     <strong>Loop Pitch Player</strong>
-    <span>App installieren für Offline-Nutzung</span>
+    <span>Install app for offline use</span>
   </div>
-  <button class="install-banner-btn" id="installBtnAndroid">Installieren</button>
-  <button class="install-banner-dismiss" id="installBannerAndroidDismiss" title="Schließen">×</button>
+  <button class="install-banner-btn" id="installBtnAndroid">Install</button>
+  <button class="install-banner-dismiss" id="installBannerAndroidDismiss" title="Close">×</button>
 </div>
 
 <!-- ── PWA Install Banner: iOS Safari ── -->
@@ -396,9 +396,9 @@
   </div>
   <div class="install-banner-text">
     <strong>Loop Pitch Player</strong>
-    <span>Zum Startbildschirm hinzufügen: Tippe auf <strong>Teilen</strong> ↑ → <strong>Zum Home-Bildschirm</strong></span>
+    <span>Add to home screen: Tap <strong>Share</strong> ↑ → <strong>Add to Home Screen</strong></span>
   </div>
-  <button class="install-banner-dismiss" id="installBannerIOSDismiss" title="Schließen">×</button>
+  <button class="install-banner-dismiss" id="installBannerIOSDismiss" title="Close">×</button>
 </div>
 
 <script>
@@ -495,19 +495,19 @@ async function loadDirHandle() {
 }
 
 async function loadDirectory(dir) {
-  folderInfo.textContent = `Lade „${dir.name}"…`;
+  folderInfo.textContent = `Loading "${dir.name}"…`;
   folderInfo.classList.remove('loaded');
   rootTree = await scanDir(dir, '');
   const total = countFiles(rootTree);
-  if (total === 0) { folderInfo.textContent = 'Keine Audio-Dateien gefunden'; return; }
-  folderInfo.textContent = `📁 ${dir.name}  ·  ${total} Loops`;
+  if (total === 0) { folderInfo.textContent = 'No audio files found'; return; }
+  folderInfo.textContent = `📁 ${dir.name}  ·  ${total} loops`;
   folderInfo.classList.add('loaded');
   allSearchItems = [];
   flattenFiles(rootTree, allSearchItems);
   breadcrumbPath = [{ name: rootTree.name, node: rootTree }];
   renderBrowser(rootTree);
   browser.classList.add('visible');
-  setStatus(`${total} Loops bereit`);
+  setStatus(`${total} loops ready`);
 }
 
 // Auto-restore last folder on page load
@@ -519,10 +519,10 @@ if (typeof window.showDirectoryPicker === 'function') {
       const perm = await handle.queryPermission({ mode:'read' });
       if (perm === 'granted') {
         await loadDirectory(handle);
-        setStatus(`Letzter Ordner wiederhergestellt · ${countFiles(rootTree)} Loops`);
+        setStatus(`Last folder restored · ${countFiles(rootTree)} loops`);
       } else {
         // Show a hint that last folder can be re-opened with one tap
-        folderInfo.textContent = `↩ „${handle.name}" — Tippen zum Öffnen`;
+        folderInfo.textContent = `↩ "${handle.name}" — Tap to open`;
         folderInfo.classList.add('loaded');
         // On next tap, request permission for the saved handle instead of picking new
         folderBtn._savedHandle = handle;
@@ -548,7 +548,7 @@ folderBtn.addEventListener('click', async () => {
     const dir = await window.showDirectoryPicker({ mode:'read' });
     await saveDirHandle(dir);
     await loadDirectory(dir);
-  } catch(e) { if (e.name !== 'AbortError') setStatus('Fehler: ' + e.message); }
+  } catch(e) { if (e.name !== 'AbortError') setStatus('Error: ' + e.message); }
 });
 
 async function scanDir(handle, path) {
@@ -697,7 +697,7 @@ async function loadFileHandle(handle, name) {
   updateSliderFill();
   speedLabel.textContent = '+0%';
 
-  setStatus(`Lade „${name}"…`);
+  setStatus(`Loading "${name}"…`);
 
   try {
     const file = await handle.getFile();
@@ -714,7 +714,7 @@ async function loadFileHandle(handle, name) {
     if (wasPlaying) startLoop();
 
     detectBPM(audioBuffer, name, 'combined');
-  } catch(e) { setStatus('Fehler: ' + e.message); }
+  } catch(e) { setStatus('Error: ' + e.message); }
 }
 
 // ── BPM: tap original box to re-analyze ───────────────────────
@@ -767,7 +767,7 @@ async function detectBPM(buffer, filename, method) {
     const fromName = bpmFromFilename(filename);
     if (fromName) {
       setBPM(fromName);
-      setStatus(statusText.textContent.split(' · ')[0] + ' · BPM aus Dateiname');
+      setStatus(statusText.textContent.split(' · ')[0] + ' · BPM from filename');
       return;
     }
   }
@@ -1043,10 +1043,10 @@ function startLoop() {
     sourceNode.connect(ac.destination);
     sourceNode.start(0, loopOffset % audioBuffer.duration);
     loopStartTime = ac.currentTime;
-    setStatus(`Loop · ${sign}${speedPercent}% · Pitch-Lock aus`);
+    setStatus(`Loop · ${sign}${speedPercent}% · Pitch-Lock off`);
   } else {
     // SoundTouch engine: pitch preserved
-    if (!_STMod) { setStatus('Audio-Engine lädt…'); return; }
+    if (!_STMod) { setStatus('Audio engine loading…'); return; }
     const bufLen = audioBuffer.length;
     const chanL = audioBuffer.getChannelData(0);
     const chanR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : chanL;
@@ -1118,7 +1118,7 @@ function stopLoop(silent) {
   toggleBtn.classList.remove('playing');
   statusDot.classList.remove('playing');
   stopWaveformAnimation();
-  if (!silent) setStatus('Gestoppt');
+  if (!silent) setStatus('Stopped');
 }
 
 function restartLoop() {
@@ -1243,22 +1243,22 @@ $('folderInput').addEventListener('change', function () {
   const files = Array.from(this.files || []);
   if (!files.length) return;
 
-  folderInfo.textContent = 'Lade Dateien…';
+  folderInfo.textContent = 'Loading files…';
   folderInfo.classList.remove('loaded');
 
   rootTree = buildTreeFromFiles(files);
   const total = countFiles(rootTree);
 
-  if (total === 0) { folderInfo.textContent = 'Keine Audio-Dateien gefunden'; return; }
+  if (total === 0) { folderInfo.textContent = 'No audio files found'; return; }
 
-  folderInfo.textContent = `📁 ${rootTree.name}  ·  ${total} Loops`;
+  folderInfo.textContent = `📁 ${rootTree.name}  ·  ${total} loops`;
   folderInfo.classList.add('loaded');
   allSearchItems = [];
   flattenFiles(rootTree, allSearchItems);
   breadcrumbPath = [{ name: rootTree.name, node: rootTree }];
   renderBrowser(rootTree);
   browser.classList.add('visible');
-  setStatus(`${total} Loops bereit`);
+  setStatus(`${total} loops ready`);
 });
 </script>
 </body>
